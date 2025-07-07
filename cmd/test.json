@@ -1,0 +1,19 @@
+{
+  "user_id": 12345,
+  "username": "test_user",
+  "email": "test_user@example.com",
+  "is_active": true,
+  "roles": ["admin", "editor"],
+  "profile": {
+    "first_name": "Test",
+    "last_name": "User",
+    "age": 30,
+    "address": {
+      "street": "123 Test Lane",
+      "city": "Testville",
+      "postal_code": "12345"
+    }
+  },
+  "login_attempts": [ "2025-07-01T10:00:00Z", "2025-07-02T12:30:00Z" ]
+}
+
