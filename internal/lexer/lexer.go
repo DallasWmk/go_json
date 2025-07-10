@@ -16,6 +16,8 @@ const (
 	BracketClose
 	Colon
 	Comma
+	SingleQuote
+	DoubleQuote
 )
 
 var Tokens = []string{
@@ -26,6 +28,8 @@ var Tokens = []string{
 	BracketClose: "]",
 	Colon:        ":",
 	Comma:        ",",
+	SingleQuote:  "'",
+	DoubleQuote:  "\"",
 }
 
 func (t TokenType) String() string {
@@ -74,6 +78,10 @@ func (l *Lexer) Lex() (Position, TokenType, string) {
 			return l.pos, Colon, ":"
 		case ',':
 			return l.pos, Comma, ","
+		case '\'':
+			return l.pos, SingleQuote, "'"
+		case '"':
+			return l.pos, DoubleQuote, "\""
 		default:
 			continue
 		}
