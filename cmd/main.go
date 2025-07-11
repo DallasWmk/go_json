@@ -25,25 +25,20 @@ func main() {
 
 func parse(file *os.File, fileName string) {
 	myLexer := lexer.NewLexer(file)
-	myMap := make(map[string]int)
 	validityCheck := map[string]bool{
 		"curly":   true,
 		"bracket": true,
-		"quote":   true,
 	}
 	for {
 		_, tok, _ := myLexer.Lex()
 		if tok == lexer.EOF {
 			break
 		}
-		myMap[tok.String()]++
-		switch tok.String() {
-		case `{`, `}`:
+		switch tok {
+		case lexer.CurlyOpen, lexer.CurlyClose:
 			validityCheck["curly"] = !validityCheck["curly"]
-		case `[`, `]`:
+		case lexer.BracketOpen, lexer.BracketClose:
 			validityCheck["bracket"] = !validityCheck["bracket"]
-		case `"`:
-			validityCheck["quote"] = !validityCheck["quote"]
 		default:
 			continue
 		}

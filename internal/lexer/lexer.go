@@ -4,6 +4,7 @@ package lexer
 import (
 	"bufio"
 	"io"
+	"unicode"
 )
 
 type TokenType int
@@ -18,6 +19,7 @@ const (
 	Comma
 	SingleQuote
 	DoubleQuote
+	Int
 )
 
 var Tokens = []string{
@@ -28,8 +30,8 @@ var Tokens = []string{
 	BracketClose: "]",
 	Colon:        ":",
 	Comma:        ",",
-	SingleQuote:  "'",
 	DoubleQuote:  "\"",
+	SingleQuote:  "'",
 }
 
 func (t TokenType) String() string {
@@ -79,13 +81,131 @@ func (l *Lexer) Lex() (Position, TokenType, string) {
 		case ',':
 			return l.pos, Comma, ","
 		case '\'':
-			return l.pos, SingleQuote, "'"
+			startPos := l.pos
+			l.backup()
+			lit := l.lexQuote()
+			return startPos, Int, lit
 		case '"':
-			return l.pos, DoubleQuote, "\""
+			startPos := l.pos
+			l.backup()
+			lit := l.lexQuote()
+			return startPos, Int, lit
 		default:
-			continue
+			if unicode.IsSpace(r) {
+				continue
+			} else if unicode.IsDigit(r) {
+				startPos := l.pos
+				l.backup()
+				lit := l.lexInt()
+				return startPos, Int, lit
+			} else if unicode.IsLetter(r) {
+				switch r {
+				case 't', 'f':
+					startPos := l.pos
+					l.backup()
+					lit := l.lexBool()
+					if lit == "true" || lit == "false" {
+						return startPos, Int, lit
+					} else {
+						l.pos = startPos // Reset position if not a valid boolean
+						continue
+					}
+				default:
+					continue // Ignore other letters
+				}
+			}
 		}
 	}
+}
+
+func (l *Lexer) backup() {
+	if err := l.reader.UnreadRune(); err != nil {
+		panic(err)
+	}
+	l.pos.Column--
+}
+
+func (l *Lexer) lexQuote() string {
+	var lit string
+	singleQuote := 0
+	dblQuote := 0
+	for {
+		r, _, err := l.reader.ReadRune()
+		if err != nil {
+			if err == io.EOF {
+				// never reached end of string without closing quote
+				return ""
+			}
+		}
+		l.pos.Column++
+		if r == '"' {
+			dblQuote++
+		}
+		if r == '\'' {
+			singleQuote++
+		}
+		lit += string(r)
+		if singleQuote == 2 || dblQuote == 2 {
+			break
+		}
+	}
+	return lit
+}
+
+// lexInt reads a sequence of digits and returns the literal.
+func (l *Lexer) lexInt() string {
+	var lit string
+	for {
+		r, _, err := l.reader.ReadRune()
+		if err != nil {
+			if err == io.EOF {
+				return lit
+			}
+		}
+		l.pos.Column++
+		if unicode.IsDigit(r) {
+			lit = lit + string(r)
+		} else {
+			// at the end of the integer, backtrack one rune
+			l.backup()
+			return lit
+		}
+	}
+}
+
+// lexBool reads a boolean value (true or false) and returns the literal.
+func (l *Lexer) lexBool() string {
+	for {
+		r, _, err := l.reader.ReadRune()
+		if err != nil {
+			if err == io.EOF {
+				return ""
+			}
+		}
+		l.pos.Column++
+		switch r {
+		case 't':
+			if string(r)+l.peek(3) == "true" {
+				return "true"
+			}
+		case 'f':
+			if string(r)+l.peek(4) == "false" {
+				return "false"
+			}
+		}
+	}
+}
+
+func (l *Lexer) peek(n int) string {
+	var lit string
+	for range n {
+		r, _, err := l.reader.ReadRune()
+		if err != nil {
+			panic(err)
+		}
+		lit += string(r)
+	}
+	return lit
 }
 
 func (l *Lexer) resetPosition() {
